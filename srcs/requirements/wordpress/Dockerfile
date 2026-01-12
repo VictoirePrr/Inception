@@ -1,0 +1,31 @@
+FROM debian:bookworm-slim
+
+# Install PHP-FPM and dependencies
+RUN apt-get update && apt-get install -y \
+    php-fpm \
+    php-mysql \
+    php-curl \
+    php-gd \
+    php-mbstring \
+    php-xml \
+    mariadb-client \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create PHP-FPM run directory
+RUN mkdir -p /var/run/php-fpm \
+    && chown -R www-data:www-data /var/run/php-fpm
+
+# Create WordPress directory
+RUN mkdir -p /var/www/html \
+    && chown -R www-data:www-data /var/www/html
+
+# Copy entrypoint script
+COPY tools/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Expose PHP-FPM port (for Nginx communication)
+EXPOSE 9000
+
+# Run entrypoint as root for proper initialization
+ENTRYPOINT ["/entrypoint.sh"]

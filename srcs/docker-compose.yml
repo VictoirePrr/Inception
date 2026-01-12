@@ -11,6 +11,28 @@ services:
     networks:
       - inception_network
 
+  wordpress:
+    build: ./requirements/wordpress
+    container_name: wordpress
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - wordpress:/var/www/html
+    networks:
+      - inception_network
+    depends_on:
+      - mariadb
+
+  nginx:
+    build: ./requirements/nginx
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "443:443"
+    networks:
+      - inception_network
+    depends_on:
+      - wordpress
 volumes:
   wordpress:
     driver: local
