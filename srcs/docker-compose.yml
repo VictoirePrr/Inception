@@ -33,19 +33,20 @@ services:
       - inception_network
     depends_on:
       - wordpress
+
 volumes:
   wordpress:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /home/vicperri-vm/data/wordpress
+      device: /home/victoire/data/wordpress
   mariadb:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /home/vicperri-vm/data/mariadb
+      device: /home/victoire/data/mariadb
 
 
 networks:

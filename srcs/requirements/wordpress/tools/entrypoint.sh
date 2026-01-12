@@ -31,7 +31,7 @@ fi
 if [ ! -f "/var/www/html/wp-config.php" ]; then
   echo "Creating wp-config.php..."
   
-  # Generate unique keys and salts
+  # Generate unique keys and salts (fresh every time)
   KEYS=$(wget -q -O - https://api.wordpress.org/secret-key/1.1/salt/)
   
   cat > /var/www/html/wp-config.php << 'EOF'
