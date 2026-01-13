@@ -16,6 +16,9 @@ RUN apt-get update && apt-get install -y \
 RUN mkdir -p /var/run/php-fpm \
     && chown -R www-data:www-data /var/run/php-fpm
 
+# Configure PHP-FPM to listen on TCP port 9000
+RUN sed -i 's|^listen = .*|listen = 0.0.0.0:9000|' /etc/php/8.2/fpm/pool.d/www.conf
+
 # Create WordPress directory
 RUN mkdir -p /var/www/html \
     && chown -R www-data:www-data /var/www/html

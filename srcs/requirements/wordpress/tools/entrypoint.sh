@@ -31,9 +31,6 @@ fi
 if [ ! -f "/var/www/html/wp-config.php" ]; then
   echo "Creating wp-config.php..."
   
-  # Generate unique keys and salts (fresh every time)
-  KEYS=$(wget -q -O - https://api.wordpress.org/secret-key/1.1/salt/)
-  
   cat > /var/www/html/wp-config.php << 'EOF'
 <?php
 
@@ -45,19 +42,6 @@ define('DB_HOST', 'mariadb:3306');
 define('DB_CHARSET', 'utf8mb4');
 define('DB_COLLATE', '');
 
-// Authentication Unique Keys and Salts
-EOF
-  
-  echo "$KEYS" >> /var/www/html/wp-config.php
-  
-  cat >> /var/www/html/wp-config.php << 'EOF'
-
-$table_prefix = 'wp_';
-
-// WordPress debugging
-define('WP_DEBUG', false);
-define('WP_DEBUG_LOG', '/var/www/html/wp-content/debug.log');
-define('WP_DEBUG_DISPLAY', false);
 
 // Force HTTPS
 define('FORCE_SSL_ADMIN', true);
@@ -82,5 +66,5 @@ chmod -R 755 /var/www/html
 chmod 644 /var/www/html/wp-config.php
 
 echo "Starting PHP-FPM..."
-# Start PHP-FPM in foreground as www-data user
+# Start PHP-FPM in foreground
 exec /usr/sbin/php-fpm8.2 -F

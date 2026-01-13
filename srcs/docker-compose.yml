@@ -29,6 +29,8 @@ services:
     restart: unless-stopped
     ports:
       - "443:443"
+    volumes:
+      - wordpress:/var/www/html
     networks:
       - inception_network
     depends_on:
@@ -40,13 +42,13 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /home/victoire/data/wordpress
+      device: /home/vicperri-vm/data/wordpress
   mariadb:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /home/victoire/data/mariadb
+      device: /home/vicperri-vm/data/mariadb
 
 
 networks:
