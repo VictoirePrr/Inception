@@ -1,70 +1,59 @@
-#!/bin/bash
+#!/bin/sh
 
-# Wait for MariaDB to be ready
-echo "Waiting for MariaDB to be ready..."
-MAX_TRIES=30
-TRIES=0
+cd /var/www/html
 
-until mysql -h mariadb -P 3306 -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" -e "SELECT 1;" > /dev/null 2>&1; do
-  TRIES=$((TRIES + 1))
-  if [ $TRIES -ge $MAX_TRIES ]; then
-    echo "ERROR: Could not connect to MariaDB after $MAX_TRIES attempts"
-    exit 1
-  fi
-  echo "MariaDB is unavailable (attempt $TRIES/$MAX_TRIES) - sleeping..."
-  sleep 2
-done
-echo "MariaDB is up!"
+    i=1
+    while [ $i -le 30 ]; do
+        if nc -z mariadb 3306; then
+            sleep 2
+            break
+        fi
+        sleep 2
+        i=$((i + 1))
+    done
 
-# Download WordPress if not already present
-if [ ! -f "/var/www/html/wp-load.php" ]; then
-  echo "Downloading WordPress..."
-  cd /tmp
-  wget -q https://wordpress.org/latest.tar.gz
-  tar -xzf latest.tar.gz
-  cp -r wordpress/* /var/www/html/
-  rm -rf wordpress latest.tar.gz
-  echo "WordPress downloaded!"
+    i=1
+    while [ $i -le 30 ]; do
+        if nc -z redis 6379; then
+            break
+        fi
+        sleep 2
+        i=$((i + 1))
+    done
+
+if [ ! -f wp-config.php ]; then
+
+    wp core download --allow-root
+
+    sleep 10
+
+
+
+    wp config create --allow-root \
+        --dbname=$DB_NAME \
+        --dbuser=$DB_USER \
+        --dbpass=$DB_PASSWORD \
+        --dbhost=$DB_HOST
+
+    wp core install --allow-root \
+        --url=$DOMAIN_NAME \
+        --title="$WP_TITLE" \
+        --admin_user=$WP_ADMIN_USER \
+        --admin_password=$WP_ADMIN_PASSWORD \
+        --admin_email=$WP_ADMIN_EMAIL
+
+    wp user create --allow-root \
+        --role=author \
+        $WP_USER \
+        $WP_USER_EMAIL \
+        --user_pass=$WP_USER_PASSWORD
+
+    wp plugin install redis-cache --activate --allow-root
+    wp config set WP_REDIS_HOST redis --allow-root
+    wp config set WP_REDIS_PORT 6379 --raw --allow-root
+    wp redis enable --allow-root
 fi
 
-# Create wp-config.php if it doesn't exist
-if [ ! -f "/var/www/html/wp-config.php" ]; then
-  echo "Creating wp-config.php..."
-  
-  cat > /var/www/html/wp-config.php << 'EOF'
-<?php
+chown -R www:www-data /var/www/html
 
-// ** MySQL settings ** //
-define('DB_NAME', getenv('MYSQL_DATABASE'));
-define('DB_USER', getenv('MYSQL_USER'));
-define('DB_PASSWORD', getenv('MYSQL_PASSWORD'));
-define('DB_HOST', 'mariadb:3306');
-define('DB_CHARSET', 'utf8mb4');
-define('DB_COLLATE', '');
-
-
-// Force HTTPS
-define('FORCE_SSL_ADMIN', true);
-if (strpos($_SERVER['HTTP_X_FORWARDED_PROTO'], 'https') !== false)
-  $_SERVER['HTTPS'] = 'on';
-
-/* That's all, stop editing! */
-if ( ! defined( 'ABSPATH' ) )
-  define( 'ABSPATH', __DIR__ . '/' );
-
-require_once( ABSPATH . 'wp-settings.php' );
-
-?>
-EOF
-  
-  echo "wp-config.php created!"
-fi
-
-# Set proper permissions
-chown -R www-data:www-data /var/www/html
-chmod -R 755 /var/www/html
-chmod 644 /var/www/html/wp-config.php
-
-echo "Starting PHP-FPM..."
-# Start PHP-FPM in foreground
-exec /usr/sbin/php-fpm8.2 -F
+exec /usr/sbin/php-fpm82 -F
