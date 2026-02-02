@@ -16,6 +16,7 @@ help:
 	@echo "  make clean        - Stop containers and remove volumes"
 	@echo "  make fclean       - Full clean: remove images, containers, volumes, networks"
 	@echo "  make help         - Show this help message"
+	@echo "  make database     - Open a mysql shell as root inside the mariadb container"
 
 all: up
 
@@ -45,6 +46,12 @@ logs:
 
 ps:
 	docker compose -f $(COMPOSE_FILE) -p $(NAME) ps
+
+
+.PHONY: database
+database:
+	@echo "Opening a mysql shell as root inside the mariadb container..."
+	@docker compose -f $(COMPOSE_FILE) -p $(NAME) exec mariadb bash -lc "mysql -uroot -p"
 
 clean: down
 	@echo "Removing volumes..."
