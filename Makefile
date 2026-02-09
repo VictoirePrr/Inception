@@ -60,7 +60,7 @@ clean: down
 
 fclean: clean
 	@echo "Removing all $(NAME) images..."
-	docker rmi inception-mariadb inception-wordpress inception-nginx 2>/dev/null || true
+	docker rmi mariadb wordpress nginx 2>/dev/null || true
 	@echo "Removing dangling images..."
 	docker image prune -f
 	@echo "✓ Full cleanup complete"
