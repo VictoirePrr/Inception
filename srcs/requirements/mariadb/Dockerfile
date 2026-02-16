@@ -3,7 +3,7 @@ FROM debian:bookworm-slim
 # Install MariaDB server
 RUN apt-get update && apt-get install -y \
     mariadb-server \
-    && rm -rf /var/lib/apt/lists/*
+
 
 # Create non-root user (subject about PID 1)
 RUN mkdir -p /var/lib/mysql /var/run/mysqld \

@@ -42,17 +42,8 @@ services:
 volumes:
   wordpress:
     driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /home/victoire/data/wordpress
   mariadb:
     driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /home/victoire/data/mariadb
-
 
 networks:
   inception_network:

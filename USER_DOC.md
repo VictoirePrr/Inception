@@ -4,18 +4,6 @@ This document explains how to use the Inception infrastructure as an end user or
 
 ---
 
-## Table of Contents
-
-1. [Services Overview](#services-overview)
-2. [Starting and Stopping](#starting-and-stopping)
-3. [Accessing WordPress](#accessing-wordpress)
-4. [Managing Credentials](#managing-credentials)
-5. [Checking Service Health](#checking-service-health)
-6. [Troubleshooting](#troubleshooting)
-7. [FAQ](#faq)
-
----
-
 ## Services Overview
 
 ### Available Services
@@ -162,14 +150,14 @@ docker compose restart
 
 Once logged in, you can:
 
-| Action | Path |
-|--------|------|
-| Write a new article | Dashboard → Posts → Add |
-| Create a page | Dashboard → Pages → Add |
-| Manage users | Dashboard → Users |
-| Modify settings | Dashboard → Settings |
-| Install a plugin | Dashboard → Plugins → Add |
-| Change theme | Dashboard → Appearance → Themes |
+| Action              |             Path                |
+|---------------------|---------------------------------|
+| Write a new article | Dashboard → Posts → Add         |
+| Create a page       | Dashboard → Pages → Add         |
+| Manage users        | Dashboard → Users               |
+| Modify settings     | Dashboard → Settings            |
+| Install a plugin    | Dashboard → Plugins → Add       |
+| Change theme        | Dashboard → Appearance → Themes |
 
 ### Using the author account
 
@@ -185,26 +173,9 @@ An author account is automatically created for testing roles:
 
 ### Where are credentials stored?
 
-Credentials are stored in two places:
-
-#### 1. **.env file** (environment variables)
+#### **.env file** (environment variables)
 - **Path**: `srcs/.env`
 - **Format**: Text file with key=value
-- **Content**:
-  ```env
-  MYSQL_USER=wp_user
-  MYSQL_PASSWORD=your_password
-  WP_ADMIN_USER=your_login
-  WP_ADMIN_PASSWORD=your_password
-  ```
-- **Security**: ⚠️ Add to `.gitignore` (never commit)
-
-#### 2. **secrets/ folder** (Docker secrets)
-- **Path**: `secrets/` at project root
-- **Files**:
-  - `credentials.txt`: WordPress credentials
-  - `db_password.txt`: MariaDB user password
-  - `db_root_password.txt`: MariaDB root password
 - **Security**: ⚠️ Add to `.gitignore` (never commit)
 
 ### Modifying credentials
@@ -216,30 +187,15 @@ Credentials are stored in two places:
    nano srcs/.env
    ```
 
-2. **Modify the variables**:
-   ```env
-   MYSQL_USER=my_db_user
-   MYSQL_PASSWORD=my_secure_password
-   WP_ADMIN_USER=my_admin_login
-   WP_ADMIN_PASSWORD=my_strong_password
-   WP_ADMIN_EMAIL=my_email@example.com
-   ```
+2. **Save**: Ctrl+O, Enter, Ctrl+X
 
-3. **Save**: Ctrl+O, Enter, Ctrl+X
-
-4. **Start the project**: `make up`
+3. **Start the project**: `make up`
 
 #### After first startup
 
 ⚠️ **Important**: Credentials are stored in the database. To modify them after initial startup:
 
-**Option 1: Via WordPress interface**
-1. Log in to `https://victoire.42.fr/wp-admin`
-2. Go to Dashboard → Users
-3. Click on the user to modify
-4. Change the password and click "Update"
-
-**Option 2: Via command line**
+**Via command line**
 1. Access the MariaDB container:
    ```bash
    docker exec -it mariadb mysql -u wp_user -p wordpress
@@ -254,22 +210,6 @@ Credentials are stored in two places:
    ```
 
 4. Exit with `exit`
-
-### Security best practices
-
-✅ **Do**:
-- Use strong passwords (12+ characters, lowercase, uppercase, numbers, symbols)
-- Add `.env` and `secrets/` to `.gitignore`
-- Never commit files containing credentials
-- Verify `.gitignore` works: `git status` should not show `.env`
-- Change passwords regularly in production
-
-❌ **Avoid**:
-- Simple passwords (123456, password)
-- Storing passwords in git
-- Using same password everywhere
-- Leaving credentials in Docker logs
-- Sharing credentials in plain text
 
 ---
 
@@ -302,8 +242,6 @@ docker compose logs nginx        # NGINX logs
 docker compose logs wordpress    # WordPress logs
 docker compose logs mariadb      # MariaDB logs
 
-# Last 50 lines
-docker compose logs --tail=50
 ```
 
 ### Test NGINX connectivity
@@ -364,211 +302,8 @@ ls -la /home/victoire/data/wordpress/
 
 # Expected result: WordPress files (wp-admin, wp-content, wp-includes, wp-config.php)
 ```
-
 ---
 
-## Troubleshooting
-
-### NGINX not responding (ERR_CONNECTION_REFUSED)
-
-**Symptom**: Cannot connect to `https://victoire.42.fr`
-
-**Solutions**:
-
-1. **Verify containers are running**
-   ```bash
-   docker compose ps
-   ```
-   If NGINX is not "running", see the log:
-   ```bash
-   docker compose logs nginx
-   ```
-
-2. **Verify domain points to localhost**
-   ```bash
-   cat /etc/hosts | grep victoire.42.fr
-   # Should show: 127.0.0.1 victoire.42.fr
-   ```
-
-3. **Verify port 443 is active**
-   ```bash
-   netstat -tuln | grep 443
-   # Or: ss -tuln | grep 443
-   ```
-
-4. **Restart NGINX**
-   ```bash
-   docker compose restart nginx
-   docker compose logs nginx  # See startup errors if any
-   ```
-
-### Invalid SSL/TLS certificate (HSTS_HEADER_ERROR)
-
-**Symptom**: HSTS warning or expired certificate
-
-**Solution**: Regenerate the certificate
-
-```bash
-# Remove NGINX container data (no effect on data)
-docker compose down nginx
-
-# Restart NGINX (automatically generates new certificate)
-docker compose up -d nginx
-
-# Verify
-curl -k https://victoire.42.fr/
-```
-
-### WordPress not displaying (blank page)
-
-**Symptom**: Blank page or 500 errors
-
-**Solutions**:
-
-1. **Check WordPress logs**
-   ```bash
-   docker compose logs wordpress
-   ```
-
-2. **Check MariaDB connection**
-   ```bash
-   docker exec -it wordpress mysql -h mariadb -u wp_user -p wordpress -e "SHOW TABLES;"
-   ```
-
-3. **Verify wp-config.php exists**
-   ```bash
-   docker exec -it wordpress ls -la /var/www/html/wp-config.php
-   ```
-
-4. **Restart WordPress**
-   ```bash
-   docker compose restart wordpress
-   ```
-
-### Database connection errors (Error establishing database connection)
-
-**Symptom**: WordPress cannot connect to MariaDB
-
-**Solutions**:
-
-1. **Verify MariaDB starts correctly**
-   ```bash
-   docker compose logs mariadb
-   ```
-
-2. **Verify environment variables are correct**
-   ```bash
-   cat srcs/.env | grep MYSQL
-   ```
-
-3. **Manually verify connection**
-   ```bash
-   docker exec -it mariadb mysql -u wp_user -p -h mariadb
-   # Enter password (MYSQL_PASSWORD from .env)
-   ```
-
-4. **Verify `wordpress` database exists**
-   ```bash
-   docker exec -it mariadb mysql -u root -p -e "SHOW DATABASES;"
-   # Enter root password (MYSQL_ROOT_PASSWORD)
-   ```
-
-### Permission denied on data
-
-**Symptom**: Cannot access `/home/victoire/data/`
-
-**Solutions**:
-
-```bash
-# Check permissions
-ls -ld /home/victoire/data/
-
-# If needed, fix permissions
-sudo chmod 755 /home/victoire/data/
-sudo chmod -R 755 /home/victoire/data/*
-
-# Verify current user can read
-ls -la /home/victoire/data/
-```
-
-### Completely reset the infrastructure
-
-⚠️ **Warning**: This deletes all containers, images, and data!
-
-```bash
-# Stop and remove everything
-make fclean
-
-# Remove volumes
-docker volume rm inception_mariadb inception_wordpress
-
-# Remove local data
-sudo rm -rf /home/victoire/data/*
-
-# Restart
-mkdir -p /home/victoire/data/{mariadb,wordpress}
-make up
-```
-
----
-
-## FAQ
-
-### Q: Why does the certificate show a warning?
-**A**: The certificate is self-signed (created locally), not issued by a certificate authority. This is normal in development. In production, you would need a valid certificate (Let's Encrypt, etc.).
-
-### Q: Can I access from outside (from another machine)?
-**A**: No, by design. The infrastructure only listens on `127.0.0.1`. To expose it, modify `docker-compose.yml` and change NGINX to `0.0.0.0:443:443` (not recommended in development).
-
-### Q: How should I backup my data?
-**A**: Data is in `/home/victoire/data/`. You can:
-- Copy the folder: `cp -r /home/victoire/data/ backup/`
-- Export the database:
-  ```bash
-  docker exec mariadb mysqldump -u root -p wordpress > backup.sql
-  ```
-
-### Q: How do I import an existing database?
-**A**: 
-```bash
-# Copy SQL file into container
-docker exec -i mariadb mysql -u root -p wordpress < your_backup.sql
-
-# You will be asked for root password
-```
-
-### Q: Can I modify Dockerfiles after first startup?
-**A**: Yes, but you need to rebuild:
-```bash
-docker compose down
-docker compose up -d --build  # or: make build && make up
-```
-
-### Q: How can I see which ports the infrastructure uses?
-**A**:
-```bash
-docker compose ps
-# Or: netstat -tuln | grep LISTEN
-```
-
-### Q: Can I use HTTP instead of HTTPS?
-**A**: No, the project is HTTPS only (port 443). Switching to HTTP (port 80) requires changes in `default.conf` and docker-compose.
-
-### Q: How much disk space is needed?
-**A**: About 1-2 GB per installation (images + data). Volumes can grow with WordPress content.
-
-### Q: Can I stop overnight and restart in the morning?
-**A**: Yes! Data persists in volumes. `docker compose up` will restart the same containers.
-
-### Q: How do I change the domain (from victoire.42.fr to something else)?
-**A**:
-1. Update `/etc/hosts`
-2. Update `DOMAIN_NAME` in `srcs/.env`
-3. Delete volumes: `docker volume rm inception_mariadb inception_wordpress`
-4. Restart: `make fclean && make up`
-
----
-
-*Last updated: January 2026*
+*Last updated: February 2026*
 
 **Need more help?** See [DEV_DOC.md](DEV_DOC.md) for advanced tasks or [README.md](README.md) for general architecture.

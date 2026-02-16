@@ -4,7 +4,6 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y \
     nginx \
     openssl \
-    && rm -rf /var/lib/apt/lists/*
 
 # Create directories for SSL certificates and nginx config
 RUN mkdir -p /etc/nginx/ssl \

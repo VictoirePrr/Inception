@@ -4,21 +4,6 @@ This document describes how to configure, build, launch, and maintain the Incept
 
 ---
 
-## Table of Contents
-
-1. [Prerequisites and Initial Setup](#prerequisites-and-initial-setup)
-2. [Project Structure](#project-structure)
-3. [Makefile Commands](#makefile-commands)
-4. [Docker Compose Commands](#docker-compose-commands)
-5. [Container and Volume Management](#container-and-volume-management)
-6. [Development Workflow](#development-workflow)
-7. [Debugging and Inspection](#debugging-and-inspection)
-8. [Data Persistence and Storage](#data-persistence-and-storage)
-9. [Service Modification](#service-modification)
-10. [Best Practices](#best-practices)
-
----
-
 ## Prerequisites and Initial Setup
 
 ### Required Hardware and OS
@@ -70,16 +55,7 @@ sudo nano /etc/hosts
 cat /etc/hosts | grep victoire.42.fr
 ```
 
-#### 5. Create data directories
-```bash
-# Create directories where data will persist
-mkdir -p /home/victoire/data/{mariadb,wordpress}
-
-# Verify
-ls -la /home/victoire/data/
-```
-
-#### 6. Clone the project
+#### 5. Clone the project
 ```bash
 # Clone from Git
 git clone <repository_url> Inception
@@ -132,70 +108,7 @@ ls -la
    ```bash
    cd ..
    echo "srcs/.env" >> .gitignore
-   echo "secrets/" >> .gitignore
    ```
-
-#### Create secrets/ folder
-
-```bash
-# Create folder
-mkdir -p secrets
-
-# Create secret files
-echo "wp_user:your_secure_password_here" > secrets/credentials.txt
-echo "your_secure_password_here" > secrets/db_password.txt
-echo "your_root_password_here" > secrets/db_root_password.txt
-
-# Set permissions (600 = owner read/write only)
-chmod 600 secrets/*
-
-# Verify
-ls -la secrets/
-```
-
----
-
-## Project Structure
-
-```
-Inception/                           # Project root
-├── Makefile                         # Docker command orchestration
-├── README.md                        # General documentation
-├── USER_DOC.md                      # User documentation
-├── DEV_DOC.md                       # This file
-├── .git/                            # Git history
-├── .gitignore                       # Files to ignore in Git
-├── secrets/                         # Local secrets (NEVER version)
-│   ├── credentials.txt              # WordPress credentials
-│   ├── db_password.txt              # DB user password
-│   └── db_root_password.txt         # DB root password
-└── srcs/                            # Source code and configs
-    ├── .env                         # Environment variables (NEVER version)
-    ├── docker-compose.yml           # Docker service orchestration
-    └── requirements/                # Services and dependencies
-        ├── mariadb/
-        │   ├── Dockerfile           # MariaDB image
-        │   ├── .dockerignore        # Files to ignore in image
-        │   ├── conf/
-        │   │   └── mariadb.cnf      # MariaDB configuration
-        │   └── tools/
-        │       └── entrypoint.sh    # Initialization script
-        ├── wordpress/
-        │   ├── Dockerfile           # WordPress image
-        │   ├── .dockerignore
-        │   └── tools/
-        │       └── entrypoint.sh    # Initialization script
-        ├── nginx/
-        │   ├── Dockerfile           # NGINX image
-        │   ├── .dockerignore
-        │   ├── conf/
-        │   │   ├── nginx.conf       # Main NGINX config
-        │   │   └── default.conf     # WordPress site config
-        │   └── tools/
-        │       └── entrypoint.sh    # Initialization script
-        └── bonus/                   # Bonus services (optional)
-            └── [bonus services]
-```
 
 ---
 
@@ -246,7 +159,6 @@ make down
 
 # Remove completely (containers, images, volumes)
 make fclean
-# ⚠️ Warning: Also deletes /home/victoire/data!
 
 # Remove only stopped containers
 docker container prune -f
@@ -489,10 +401,7 @@ ls -la /home/victoire/data/wordpress | head -10
 Example: Modify MariaDB configuration file
 
 ```bash
-# Edit configuration
-nano srcs/requirements/mariadb/conf/mariadb.cnf
-
-# Or modify Dockerfile
+# modify Dockerfile
 nano srcs/requirements/mariadb/Dockerfile
 
 # Or modify entrypoint
@@ -535,22 +444,6 @@ docker exec -it mariadb mysql -u wp_user -p wordpress -e "SELECT VERSION();"
 
 # Test complete application
 curl -k https://victoire.42.fr/
-```
-
-#### 5. Validate and commit
-
-```bash
-# Check what changed
-git status
-git diff
-
-# Add and commit (attention: .env and secrets/ MUST NOT be added)
-git add srcs/requirements/mariadb/
-git add Makefile  # If modified
-git commit -m "feat: update MariaDB configuration"
-
-# Verify
-git log --oneline -5
 ```
 
 ### Testing and validation
@@ -620,25 +513,6 @@ docker compose exec -it nginx sh
   exit
 ```
 
-### Analyze logs
-
-```bash
-# See all logs with timestamps
-docker compose logs --timestamps
-
-# Filter errors
-docker compose logs | grep -i "error\|fatal\|failed"
-
-# See logs from last hour
-docker compose logs --since 1h
-
-# Follow logs in real-time with colors
-docker compose logs -f --timestamps
-
-# Search logs from a specific date
-docker compose logs mariadb | grep "2026-01"
-```
-
 ### Test connectivity
 
 ```bash
@@ -652,19 +526,6 @@ docker compose exec nginx nc -zv wordpress 9000
 
 # Internal HTTP request (from NGINX)
 docker compose exec nginx curl -v http://wordpress:9000/index.php
-```
-
-### Inspect environment variables
-
-```bash
-# See all environment variables in WordPress container
-docker compose exec wordpress env | sort
-
-# Grep for specific variable
-docker compose exec wordpress env | grep MYSQL
-
-# See secrets (if used)
-docker compose exec wordpress cat /run/secrets/db_password
 ```
 
 ### Test SSL certificates
@@ -688,58 +549,64 @@ echo | openssl s_client -connect localhost:443 -servername victoire.42.fr 2>/dev
 
 #### Storage types in project
 
-1. **Named volumes** (recommended, used here)
-   ```yaml
-   volumes:
-     mariadb:
-       driver: local
-     wordpress:
-       driver: local
-   ```
+This project uses **named Docker volumes** (NOT bind mounts):
 
-2. **Host storage** (where data actually lives)
-   ```
-   /home/victoire/data/mariadb/    # MariaDB data
-   /home/victoire/data/wordpress/  # WordPress files
-   ```
+```yaml
+volumes:
+  mariadb:
+    driver: local     # Docker-managed named volume
+  wordpress:
+    driver: local     # Docker-managed named volume
+```
+
+**Key point**: You do NOT need to create `/home/victoire/data/` directories. Docker automatically manages volume storage at:
+- `/var/lib/docker/volumes/mariadb/_data/`
+- `/var/lib/docker/volumes/wordpress/_data/`
 
 ### Data location
 
 ```bash
-# See exactly where data is stored
-ls -lah /home/victoire/data/
+# Docker manages these locations automatically
+sudo ls -lah /var/lib/docker/volumes/
 
-# Content of mariadb volume
-ls -la /home/victoire/data/mariadb/ | head -20
+# See MariaDB data (requires sudo)
+sudo ls -la /var/lib/docker/volumes/mariadb/_data/
 
-# Content of wordpress volume
-ls -la /home/victoire/data/wordpress/ | head -20
+# See WordPress data (requires sudo)
+sudo ls -la /var/lib/docker/volumes/wordpress/_data/
   # You should see: wp-admin/, wp-content/, wp-includes/, wp-config.php, index.php
+
+# Alternative: Use Docker commands (no sudo needed)
+docker volume ls | grep inception
+docker volume inspect inception_mariadb
+docker volume inspect inception_wordpress
 ```
 
 ### Monitor data size
 
 ```bash
-# Total data size
-du -sh /home/victoire/data/
+# See volume sizes using Docker
+docker volume inspect inception_mariadb
+docker volume inspect inception_wordpress
 
-# Size per service
-du -sh /home/victoire/data/mariadb/
-du -sh /home/victoire/data/wordpress/
+# Or access directly on filesystem
+sudo du -sh /var/lib/docker/volumes/mariadb/_data/
+sudo du -sh /var/lib/docker/volumes/wordpress/_data/
 
 # Largest WordPress files
-find /home/victoire/data/wordpress/ -type f -exec ls -lh {} + | sort -k5 -rh | head -20
+sudo find /var/lib/docker/volumes/wordpress/_data/ -type f -exec ls -lh {} + | sort -k5 -rh | head -20
 ```
 
 ### Clean up data
 
 ```bash
-# ⚠️ Remove ALL volumes and data
+# ⚠️ Remove containers AND volumes (destroys all data)
 docker compose down -v
-rm -rf /home/victoire/data/*
+
+# Verify volumes are removed
+docker volume ls | grep inception
 
 # Restart with fresh installation
-mkdir -p /home/victoire/data/{mariadb,wordpress}
 docker compose up -d --build
 ```
 
@@ -765,213 +632,7 @@ docker exec wordpress wp --allow-root post list --format=csv
 
 ---
 
-## Service Modification
-
-### Add an environment variable
-
-#### 1. In .env
-```bash
-# Edit srcs/.env
-nano srcs/.env
-
-# Add new variable
-MY_NEW_VAR=its_value
-```
-
-#### 2. In Dockerfile (if needed)
-```dockerfile
-# Use the variable
-RUN echo "${MY_NEW_VAR}" > /tmp/config
-```
-
-#### 3. Or in entrypoint.sh
-```bash
-#!/bin/bash
-echo "Variable received: $MY_NEW_VAR"
-```
-
-#### 4. Rebuild and restart
-```bash
-docker compose build --no-cache wordpress
-docker compose down
-docker compose up -d
-docker compose logs wordpress | grep "Variable received"
-```
-
-### Modify a port
-
-⚠️ **Warning**: Only NGINX exposes external ports
-
-```yaml
-# In docker-compose.yml
-services:
-  nginx:
-    ports:
-      - "443:443"    # Current port
-      - "80:80"      # Add HTTP (not recommended)
-```
-
-Then restart:
-```bash
-docker compose down
-docker compose up -d
-docker compose ps  # Verify ports
-```
-
-### Change dependency version
-
-Example: Switch from PHP 8.2 to PHP 8.3
-
-```dockerfile
-# In srcs/requirements/wordpress/Dockerfile
-FROM debian:bookworm-slim
-
-# Before
-RUN apt-get install -y php8.2-fpm ...
-
-# After
-RUN apt-get install -y php8.3-fpm ...
-
-# Rebuild
-docker compose build --no-cache wordpress
-```
-
-### Add a new service
-
-1. **Create structure**
-   ```bash
-   mkdir -p srcs/requirements/myservice/tools
-   mkdir -p srcs/requirements/myservice/conf
-   ```
-
-2. **Create Dockerfile**
-   ```bash
-   nano srcs/requirements/myservice/Dockerfile
-   ```
-
-3. **Add to docker-compose.yml**
-   ```yaml
-   services:
-     myservice:
-       build: requirements/myservice/
-       container_name: myservice
-       depends_on:
-         - wordpress
-       environment:
-         - ENV_VAR=${ENV_VAR}
-       volumes:
-         - wordpress:/var/www/html:ro  # Read-only access
-       networks:
-         - inception_network
-   ```
-
-4. **Add variables to .env**
-5. **Rebuild**
-   ```bash
-   docker compose build
-   docker compose up -d
-   ```
-
----
-
-## Best Practices
-
-### Security
-
-✅ **Do**:
-```bash
-# 1. Never commit secrets
-git config core.excludesfile ~/.gitignore_global
-
-# 2. Use .gitignore
-echo "srcs/.env" >> .gitignore
-echo "secrets/" >> .gitignore
-
-# 3. Verify
-git status  # Should NOT show .env or secrets/
-
-# 4. Strong passwords
-# Minimum 12 characters, letters + numbers + symbols
-
-# 5. Production certificates
-# Use Let's Encrypt, not self-signed
-```
-
-❌ **Avoid**:
-```bash
-# Simple passwords
-MYSQL_PASSWORD=1234
-
-# Hardcoded passwords in Dockerfiles
-RUN echo "password123" > /tmp/pass
-
-# Passwords in logs
-docker compose logs | grep password
-
-# Plaintext data in Git
-git add secrets/db_password.txt
-```
-
-### Performance
-
-```bash
-# Check image sizes
-docker images | grep inception
-
-# Clean unused resources
-docker system prune -a
-
-# See resource usage
-docker stats
-# Shows: CPU %, MEM USAGE, NET I/O, BLOCK I/O
-
-# Optimize builds
-# 1. Use .dockerignore
-# 2. Order layers from least to most modified
-# 3. Use lightweight base images
-```
-
-### Monitoring
-
-```bash
-# See usage in real-time
-watch docker stats
-
-# Detailed logs
-docker compose logs --tail=1000 | grep -i warning
-
-# Health checks (if implemented)
-docker ps --format="table {{.Names}}\t{{.Status}}"
-```
-
-### Regular maintenance
-
-```bash
-# Weekly
-docker system prune -a  # Clean up
-docker compose logs > /tmp/logs_backup.txt  # Backup logs
-
-# Monthly
-# 1. Renew SSL certificates
-# 2. Update passwords
-# 3. Check for Debian/Alpine updates
-
-# Before deployment
-# 1. Test `docker compose down` then `docker compose up`
-# 2. Verify data persistence
-# 3. Test all failure scenarios
-```
-
----
-
-*Last updated: January 2026*
+*Last updated: February 2026*
 
 **Related files**: [README.md](README.md), [USER_DOC.md](USER_DOC.md), [Makefile](Makefile), [srcs/docker-compose.yml](srcs/docker-compose.yml)
 
-**Quick commands**:
-```bash
-make up              # Start
-make down            # Stop
-docker compose logs  # View logs
-docker compose exec wordpress bash  # Access WordPress
-```
