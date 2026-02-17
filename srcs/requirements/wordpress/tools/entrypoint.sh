@@ -41,6 +41,7 @@ if [ "$TABLE_EXISTS" -eq 0 ]; then
         --admin_user=$WP_ADMIN_USER \
         --admin_password=$WP_ADMIN_PASSWORD \
         --admin_email=$WP_ADMIN_EMAIL
+
     
     # Create additional WordPress user
     wp user create --allow-root \

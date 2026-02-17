@@ -31,7 +31,7 @@ done
 
 # Wait for PHP-FPM to be ready on port 9000
 echo "Waiting for PHP-FPM to be ready..."
-MAX_TRIES=60
+MAX_TRIES=180
 TRIES=0
 until nc -z wordpress 9000 2>/dev/null; do
   TRIES=$((TRIES + 1))
