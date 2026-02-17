@@ -1,9 +1,10 @@
 FROM debian:bookworm-slim
 
-# Install Nginx and OpenSSL for certificate generation
+# Install Nginx, OpenSSL, and netcat for health checks
 RUN apt-get update && apt-get install -y \
     nginx \
     openssl \
+    netcat-openbsd
 
 # Create directories for SSL certificates and nginx config
 RUN mkdir -p /etc/nginx/ssl \
@@ -11,7 +12,6 @@ RUN mkdir -p /etc/nginx/ssl \
 
 # Copy nginx configuration
 COPY conf/nginx.conf /etc/nginx/nginx.conf
-COPY conf/default.conf /etc/nginx/conf.d/default.conf
 
 # Copy entrypoint script
 COPY tools/entrypoint.sh /entrypoint.sh

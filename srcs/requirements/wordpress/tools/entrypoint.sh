@@ -25,8 +25,6 @@ if [ "$TABLE_EXISTS" -eq 0 ]; then
     # Download WordPress
     wp core download --allow-root
     
-    sleep 3
-    
     # Create wp-config.php
     wp config create --allow-root \
         --dbname=$MYSQL_DATABASE \
@@ -34,8 +32,7 @@ if [ "$TABLE_EXISTS" -eq 0 ]; then
         --dbpass=$MYSQL_PASSWORD \
         --dbhost=$DB_HOST \
         --skip-check
-    
-    sleep 3
+
     
     # Install WordPress in the database
     wp core install --allow-root \

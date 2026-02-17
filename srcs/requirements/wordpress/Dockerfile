@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
     mariadb-client \
     wget \
     curl \
-    netcat-openbsd \
+    netcat-openbsd
 
 # Install WP-CLI
 RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && \

@@ -2,7 +2,7 @@ FROM debian:bookworm-slim
 
 # Install MariaDB server
 RUN apt-get update && apt-get install -y \
-    mariadb-server \
+    mariadb-server
 
 
 # Create non-root user (subject about PID 1)
