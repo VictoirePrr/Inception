@@ -15,7 +15,7 @@ fi
 
 # Wait for WordPress to be ready
 echo "Waiting for WordPress to be ready..."
-MAX_TRIES=30
+MAX_TRIES=80
 TRIES=0
 
 # Wait for wp-load.php to exist
